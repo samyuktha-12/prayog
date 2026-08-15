@@ -3,7 +3,7 @@
   --surface: #ffffff;
   --ink: #1f2937;
   --muted: #6b7280;
-  --radius: 20px;
+  --radius: 24px;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   --accent-chem: #2dd4bf;
 }
@@ -17,6 +17,7 @@ body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
+  font-size: 17px;
 }
 
 .page {
@@ -27,18 +28,24 @@ body {
 }
 
 h1 {
-  font-size: 28px;
+  font-size: 32px;
   margin: 8px 0 24px;
 }
 
 .chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: var(--surface);
   border-radius: 999px;
   padding: 8px 16px;
   font-weight: 600;
   box-shadow: var(--shadow);
   margin-bottom: 12px;
+}
+
+.chip.accent {
+  border: 2px solid var(--accent, var(--accent-chem));
 }
 
 .segmented {
@@ -97,8 +104,8 @@ h1 {
 }
 
 .card .title {
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 18px;
 }
 
 .card .badge {
@@ -119,14 +126,14 @@ h1 {
   padding: 16px 28px;
   border-radius: 999px;
   border: none;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .btn-primary {
-  background: var(--accent-chem);
-  color: #063a35;
+  background: var(--accent, var(--accent-chem));
+  color: #10241f;
 }
 
 .btn-primary:disabled {
@@ -215,6 +222,45 @@ h1 {
   z-index: 2;
 }
 
+.generic-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  padding-bottom: 220px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--accent) 18%, var(--bg)), var(--bg));
+}
+
+.generic-scene-icon {
+  font-size: 72px;
+  line-height: 1;
+}
+
+.generic-scene-subject {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.generic-scene-instruction {
+  font-size: 20px;
+  font-weight: 600;
+  max-width: 480px;
+}
+
+.generic-scene-concept {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 440px;
+}
+
 .dialogue-card {
   position: fixed;
   left: 0;
@@ -230,19 +276,48 @@ h1 {
 }
 
 .step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.step-indicator .step-label {
   font-size: 12px;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 8px;
+}
+
+.step-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.step-dot.done,
+.step-dot.current {
+  background: var(--accent, var(--accent-chem));
+}
+
+.step-dot.current {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--accent-chem)) 30%, transparent);
 }
 
 .guide-line {
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   margin-bottom: 16px;
-  min-height: 48px;
+  min-height: 52px;
 }
 
 .input-row {
@@ -296,11 +371,55 @@ h1 {
   font-size: 14px;
 }
 
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.report-header .icon-badge {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: color-mix(in srgb, var(--accent, var(--accent-chem)) 22%, var(--surface));
+}
+
+.report-header .subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stat-chip {
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  border: 2px solid color-mix(in srgb, var(--accent, var(--accent-chem)) 35%, transparent);
+}
+
 .report-card {
   background: var(--surface);
   border-radius: var(--radius);
+  border-top: 6px solid var(--accent, var(--accent-chem));
   box-shadow: var(--shadow);
   padding: 28px;
   white-space: pre-wrap;
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.7;
 }

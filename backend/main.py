@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import re
@@ -10,6 +11,7 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 import prompts
@@ -31,6 +33,13 @@ EXPERIMENTS_DIR = Path(__file__).parent / "experiments"
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/experiments/{experiment_id}")
+def get_experiment(experiment_id: str):
+    # Lets the frontend drive step/checkpoint progression from the same
+    # config the backend uses, instead of duplicating it as hardcoded JS.
+    return _load_experiment(experiment_id)
 
 
 # --- helpers -----------------------------------------------------------
@@ -75,6 +84,33 @@ def _parse_verdict(reply_text: str) -> tuple[str, Optional[str]]:
     child_text = (reply_text[: match.start()] + reply_text[match.end():]).strip()
     child_text = re.sub(r"[\s:\-–—]+$", "", child_text).strip()
     return child_text, verdict
+
+
+_CLAUSE_BOUNDARY_CHARS = "।.!?,"  # danda first — Hindi is the locked demo language
+
+
+def _pop_clause(buffer: str) -> tuple[Optional[str], str]:
+    """Split off the first complete clause from a growing LLM text buffer.
+    Returns (clause_or_None, remaining_buffer)."""
+    for i, ch in enumerate(buffer):
+        if ch in _CLAUSE_BOUNDARY_CHARS:
+            return buffer[: i + 1].strip(), buffer[i + 1:]
+    return None, buffer
+
+
+async def _synthesize_clause(clause: str, language: str) -> bytes:
+    """Collect one clause's WebSocket-streamed audio into a single complete
+    chunk. We don't relay Bulbul's raw sub-chunks to the frontend — a partial
+    MP3 frame isn't independently playable, but one clause's full audio is.
+    """
+    parts = []
+    async for chunk in sarvam.tts_stream(clause, language):
+        parts.append(chunk)
+    return b"".join(parts)
+
+
+def _sse(event: dict) -> str:
+    return json.dumps(event) + "\n"
 
 
 # --- request/response models -------------------------------------------
@@ -211,6 +247,121 @@ def respond(body: RespondRequest):
         reply_audio=reply_audio,
         transcript=transcript if body.input_type == "audio" else None,
     )
+
+
+@app.post("/respond/stream")
+async def respond_stream(body: RespondRequest):
+    """Streaming twin of /respond, voice-only (CLAUDE.md §8 items 1-2):
+    streams llm_stream() and speaks each clause via Bulbul WebSocket TTS as
+    soon as it's ready, instead of waiting for the full reply before any
+    audio exists. Frontend opts in via a flag and falls back to the plain
+    /respond for input_type="text" or if streaming fails.
+
+    Response is newline-delimited JSON events, not a single JSON body:
+      {"type": "transcript", "transcript": str}
+      {"type": "text_delta", "text": str}          — one per LLM token/chunk
+      {"type": "audio_chunk", "audio": base64}     — one complete, playable
+                                                      clause of audio
+      {"type": "done", "reply_text": str, "verdict": str|None}
+      {"type": "error", "message": str}            — mid-stream failure
+
+    Evaluate-mode replies never stream audio clause-by-clause: the trailing
+    CORRECT/NEEDS_WORK verdict token has no clause boundary before it, so
+    speaking clauses as they arrive risks reading the verdict aloud to the
+    child. Evaluate mode waits for the full reply, strips the verdict, and
+    only then synthesizes — one audio_chunk instead of several.
+    """
+    if body.input_type != "audio":
+        raise HTTPException(status_code=400, detail="Streaming is only implemented for input_type='audio'")
+
+    session = _get_session(body.session_id)
+    experiment = _load_experiment(session["experiment_id"])
+    session_store.update_scene_state(body.session_id, body.scene_state)
+
+    try:
+        audio_bytes = base64.b64decode(body.input)
+    except Exception:
+        raise HTTPException(status_code=400, detail="input must be base64-encoded audio")
+
+    try:
+        transcript = await asyncio.to_thread(sarvam.asr, audio_bytes, session["language"], filename="audio.webm")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Speech-to-text failed: {e}")
+
+    session_store.append_history(body.session_id, "child", transcript)
+    current_step_id = body.scene_state.get("current_step_id")
+    language = session["language"]
+    mode = body.mode
+
+    if mode == "guide":
+        current_step = _find_step(experiment, current_step_id)
+        messages = prompts.build_guide_prompt(session, experiment, transcript, current_step)
+    else:
+        checkpoint = _find_checkpoint(experiment, current_step_id)
+        messages = prompts.build_evaluate_prompt(session, checkpoint, transcript)
+
+    async def event_stream():
+        yield _sse({"type": "transcript", "transcript": transcript})
+
+        full_text = ""
+        clause_buffer = ""
+        try:
+            async for delta in sarvam.llm_stream(messages):
+                full_text += delta
+                clause_buffer += delta
+                yield _sse({"type": "text_delta", "text": delta})
+
+                if mode == "guide":
+                    clause, clause_buffer = _pop_clause(clause_buffer)
+                    while clause:
+                        try:
+                            audio_bytes_out = await _synthesize_clause(clause, language)
+                            if audio_bytes_out:
+                                yield _sse({"type": "audio_chunk", "audio": base64.b64encode(audio_bytes_out).decode("ascii")})
+                        except Exception:
+                            pass  # this clause's audio degrades to text-only; the turn continues
+                        clause, clause_buffer = _pop_clause(clause_buffer)
+        except Exception as e:
+            yield _sse({"type": "error", "message": f"Guide reply failed: {e}"})
+            return
+
+        if mode == "guide":
+            child_text, verdict = full_text.strip(), None
+            if clause_buffer.strip():
+                try:
+                    audio_bytes_out = await _synthesize_clause(clause_buffer.strip(), language)
+                    if audio_bytes_out:
+                        yield _sse({"type": "audio_chunk", "audio": base64.b64encode(audio_bytes_out).decode("ascii")})
+                except Exception:
+                    pass
+            event = {
+                "type": "guide_turn",
+                "step_id": current_step["id"],
+                "transcript": transcript,
+                "reply": child_text,
+            }
+        else:
+            child_text, verdict = _parse_verdict(full_text)
+            try:
+                audio_out = await asyncio.to_thread(sarvam.tts, child_text, language)
+                yield _sse({"type": "audio_chunk", "audio": base64.b64encode(audio_out).decode("ascii")})
+            except Exception:
+                pass
+            event = {
+                "type": "checkpoint",
+                "step_id": current_step_id,
+                "question": checkpoint["question"],
+                "transcript": transcript,
+                "verdict": verdict,
+                "reply": child_text,
+            }
+
+        session_store.append_history(body.session_id, "guide", child_text)
+        session_store.append_event(body.session_id, event)
+
+        yield _sse({"type": "done", "reply_text": child_text, "verdict": verdict})
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
 
 
 @app.post("/session/action", response_model=SessionActionResponse)

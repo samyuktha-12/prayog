@@ -1,1 +1,53 @@
-{}
+{
+  "id": "biology_water",
+  "subject": "Biology",
+  "title": "Water Conduction in Plants",
+  "grade": 6,
+  "accent": "#4ade80",
+  "goal": "Observe how a leafy stem carries colored water upward through its tubes.",
+  "intro": "Namaste {student_name}! Let's watch a plant drink colored water.",
+  "steps": [
+    {
+      "id": "place_stem",
+      "instruction": "Put the leafy stem into the glass of colored water.",
+      "action": "place_stem",
+      "state_change": { "stem_placed": true },
+      "concept": "Plants take up water through their roots and stem, just like this cut stem does."
+    },
+    {
+      "id": "wait",
+      "instruction": "Slide the time slider forward and wait for the water to travel up.",
+      "action": "advance_time",
+      "state_change": { "time_elapsed": true },
+      "concept": "Water moves upward through thin tubes in the stem, a process called transpiration pull."
+    },
+    {
+      "id": "observe_color",
+      "instruction": "Look closely at the stem and leaves to see where the color has reached.",
+      "action": "observe_stem",
+      "state_change": { "color_observed": true },
+      "concept": "The colored water rises through the stem into the veins of the leaves, tinting them."
+    },
+    {
+      "id": "cut_stem",
+      "instruction": "Cut across the stem to see the colored tubes inside.",
+      "action": "cut_stem",
+      "state_change": { "stem_cut": true, "tubes_visible": true },
+      "concept": "The colored dots or rings you see are the xylem tubes that carried the water up."
+    }
+  ],
+  "checkpoints": [
+    {
+      "after_step": "observe_color",
+      "question": "How did the color reach the top of the plant?",
+      "expected": "the stem carried the colored water upward through its tubes",
+      "hint": "Think about the path the water took from the glass to the leaves."
+    },
+    {
+      "after_step": "cut_stem",
+      "question": "What are the colored dots you see when the stem is cut?",
+      "expected": "the tiny tubes (xylem) that carry water up the stem",
+      "hint": "They are the same tubes the colored water traveled through."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { startSession } from '../lib/api.js'
-import { CHEMISTRY_EXPERIMENT, initialSceneState } from '../scene/sceneState.js'
+import { startSession, getExperiment } from '../lib/api.js'
+import { initialSceneState } from '../scene/sceneState.js'
 
 const LANGUAGE_LABELS = {
   'hi-IN': 'हिंदी · Hindi',
@@ -17,15 +17,19 @@ export default function Setup({ session, updateSession, navigate }) {
     setLoading(true)
     setError(null)
     try {
-      const { session_id, greeting_text } = await startSession({
-        student_name: name,
-        language: session.language,
-        experiment_id: session.experiment_id,
-      })
+      const [experiment, { session_id, greeting_text }] = await Promise.all([
+        getExperiment(session.experiment_id),
+        startSession({
+          student_name: name,
+          language: session.language,
+          experiment_id: session.experiment_id,
+        }),
+      ])
       updateSession({
         student_name: name,
         session_id,
-        scene_state: initialSceneState(CHEMISTRY_EXPERIMENT),
+        experiment,
+        scene_state: initialSceneState(experiment),
         history: [{ role: 'guide', text: greeting_text }],
         event_log: [],
       })

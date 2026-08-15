@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import ChemScene from '../scene/ChemScene.jsx'
+import GenericScene from '../scene/GenericScene.jsx'
 import DialogueCard from '../components/DialogueCard.jsx'
-import { respond, logAction } from '../lib/api.js'
-import { blobToBase64, playAudioFromBase64 } from '../lib/voice.js'
+import { respond, respondStream, logAction, STREAMING_VOICE_ENABLED } from '../lib/api.js'
+import { blobToBase64, playAudioFromBase64, AudioQueue } from '../lib/voice.js'
 import {
-  CHEMISTRY_EXPERIMENT,
   getCurrentStep,
   getStepIndex,
   getCheckpointForStep,
@@ -13,7 +13,7 @@ import {
 } from '../scene/sceneState.js'
 
 export default function Scene({ session, updateSession, navigate }) {
-  const experiment = CHEMISTRY_EXPERIMENT
+  const experiment = session.experiment
   const sceneState = session.scene_state
   const currentStep = getCurrentStep(experiment, sceneState)
   const checkpoint = sceneState.awaiting_answer ? getCheckpointForStep(experiment, currentStep.id) : null
@@ -66,8 +66,9 @@ export default function Scene({ session, updateSession, navigate }) {
   }
 
   // Shared tail end of a /respond turn, used by both the text and voice
-  // paths — same brain, per CLAUDE.md §4. Only the voice path passes
-  // reply_audio (text replies are never spoken).
+  // paths — same brain, per CLAUDE.md §4. Only the non-streaming voice path
+  // passes reply_audio here; the streaming path already played its audio
+  // chunk-by-chunk as it arrived, so it passes null.
   function applyRespondResult({ transcript, reply_text, reply_audio }) {
     let newSceneState = sceneState
     const newHistoryEntries = [
@@ -118,19 +119,65 @@ export default function Scene({ session, updateSession, navigate }) {
     }
   }
 
+  async function handleVoiceSendStreaming(base64Audio) {
+    const queue = new AudioQueue()
+    let finalReplyText = ''
+    let finalTranscript = ''
+
+    await respondStream(
+      {
+        session_id: session.session_id,
+        input: base64Audio,
+        scene_state: sceneState,
+        mode,
+      },
+      {
+        onTranscript: (t) => {
+          finalTranscript = t
+        },
+        onAudioChunk: (chunk) => queue.enqueue(chunk),
+        onDone: (replyText) => {
+          finalReplyText = replyText
+        },
+      },
+    )
+
+    applyRespondResult({
+      transcript: finalTranscript || '(voice message)',
+      reply_text: finalReplyText,
+      reply_audio: null, // already streamed to the AudioQueue as it arrived
+    })
+  }
+
+  async function handleVoiceSendNonStreaming(base64Audio) {
+    const { reply_text, reply_audio, transcript } = await respond({
+      session_id: session.session_id,
+      input: base64Audio,
+      input_type: 'audio',
+      scene_state: sceneState,
+      mode,
+    })
+    applyRespondResult({ transcript: transcript || '(voice message)', reply_text, reply_audio })
+  }
+
   async function handleVoiceSend(blob) {
     if (loading) return
     setLoading(true)
     try {
       const base64Audio = await blobToBase64(blob)
-      const { reply_text, reply_audio, transcript } = await respond({
-        session_id: session.session_id,
-        input: base64Audio,
-        input_type: 'audio',
-        scene_state: sceneState,
-        mode,
-      })
-      applyRespondResult({ transcript: transcript || '(voice message)', reply_text, reply_audio })
+      if (STREAMING_VOICE_ENABLED) {
+        try {
+          await handleVoiceSendStreaming(base64Audio)
+        } catch (e) {
+          // Streaming can fail mid-turn in ways plain REST can't (partial
+          // events, dropped connection). Fall back to the full non-streaming
+          // path rather than losing the turn — still silent to the child.
+          console.warn('Streaming voice failed, falling back to non-streaming /respond:', e)
+          await handleVoiceSendNonStreaming(base64Audio)
+        }
+      } else {
+        await handleVoiceSendNonStreaming(base64Audio)
+      }
     } catch (e) {
       // Voice errors fall back silently — the text input keeps working,
       // no visible error banner (unlike the text path above).
@@ -146,12 +193,21 @@ export default function Scene({ session, updateSession, navigate }) {
 
   return (
     <div className="scene-stage">
-      <ChemScene
-        stepAction={currentStep.action}
-        sceneState={sceneState}
-        disabled={sceneState.awaiting_answer || sceneState.completed}
-        onStepAction={handleStepDone}
-      />
+      {experiment.id === 'chemistry_separation' ? (
+        <ChemScene
+          stepAction={currentStep.action}
+          sceneState={sceneState}
+          disabled={sceneState.awaiting_answer || sceneState.completed}
+          onStepAction={handleStepDone}
+        />
+      ) : (
+        <GenericScene
+          experiment={experiment}
+          currentStep={currentStep}
+          disabled={sceneState.awaiting_answer || sceneState.completed}
+          onStepAction={handleStepDone}
+        />
+      )}
 
       <div className="scene-topbar">
         <div className="chip">{experiment.title}</div>

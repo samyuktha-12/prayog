@@ -1,1 +1,46 @@
-{}
+{
+  "id": "maths_area_perimeter",
+  "subject": "Maths",
+  "title": "Area & Perimeter Grid",
+  "grade": 6,
+  "accent": "#facc15",
+  "goal": "Draw a shape on a grid and find its area and perimeter by counting squares.",
+  "intro": "Namaste {student_name}! Let's draw a shape and measure it.",
+  "steps": [
+    {
+      "id": "draw_shape",
+      "instruction": "Tap squares on the grid to draw a closed shape.",
+      "action": "draw_shape",
+      "state_change": { "shape_drawn": true },
+      "concept": "A closed shape on a grid has an inside (area) and an outline (perimeter)."
+    },
+    {
+      "id": "count_area",
+      "instruction": "Count how many whole squares are inside your shape.",
+      "action": "count_area",
+      "state_change": { "area_counted": true },
+      "concept": "Area is the number of unit squares that fit inside the shape."
+    },
+    {
+      "id": "count_perimeter",
+      "instruction": "Count how many unit edges make up the boundary of your shape.",
+      "action": "count_perimeter",
+      "state_change": { "perimeter_counted": true },
+      "concept": "Perimeter is the total length of the boundary, measured in grid units."
+    }
+  ],
+  "checkpoints": [
+    {
+      "after_step": "count_area",
+      "question": "What is the area of your shape in squares?",
+      "expected": "the number of whole unit squares inside the shape",
+      "hint": "Count only the squares fully inside your outline."
+    },
+    {
+      "after_step": "count_perimeter",
+      "question": "What is the perimeter of your shape?",
+      "expected": "the total number of unit edges along the outer boundary",
+      "hint": "Walk around the outside edge and count each unit step."
+    }
+  ]
+}

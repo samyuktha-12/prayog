@@ -1,36 +1,7 @@
-// Mirrors backend/experiments/chemistry_separation.json. No live 3D scene
-// yet, so this is what drives step/checkpoint progression for the
-// text-only Scene screen. scene_state is owned by the frontend (CLAUDE.md
-// §4) and posted to /respond on every turn.
-
-export const CHEMISTRY_EXPERIMENT = {
-  id: 'chemistry_separation',
-  title: 'Separation of Substances',
-  steps: [
-    {
-      id: 'mix',
-      instruction: 'Add the sand and salt to the water and stir well.',
-      action: 'stir',
-      state_change: { mixture: 'mixed' },
-    },
-    {
-      id: 'filter',
-      instruction: 'Pour the mixture slowly through the filter paper.',
-      action: 'pour_filter',
-      state_change: { sand_separated: true },
-    },
-    {
-      id: 'evaporate',
-      instruction: 'Heat the filtered water until it all boils away.',
-      action: 'heat',
-      state_change: { water_boiled: true, salt_visible: true },
-    },
-  ],
-  checkpoints: [
-    { after_step: 'filter', question: 'What stayed on the filter paper?' },
-    { after_step: 'evaporate', question: 'Where did the salt come from when the water disappeared?' },
-  ],
-}
+// Generic step/checkpoint progression, driven by whichever experiment
+// config was fetched from GET /experiments/{id} (CLAUDE.md §4 — one
+// engine, N configs). scene_state is owned by the frontend and posted to
+// /respond on every turn.
 
 export function initialSceneState(experiment) {
   return { current_step_id: experiment.steps[0].id, awaiting_answer: false, completed: false }

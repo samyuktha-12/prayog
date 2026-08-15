@@ -1,1 +1,53 @@
-{}
+{
+  "id": "physics_circuit",
+  "subject": "Physics",
+  "title": "Simple Electric Circuit",
+  "grade": 6,
+  "accent": "#60a5fa",
+  "goal": "Build a simple circuit and test which objects conduct electricity.",
+  "intro": "Namaste {student_name}! Let's light up a bulb together.",
+  "steps": [
+    {
+      "id": "connect_battery",
+      "instruction": "Connect a wire from the battery's positive terminal to the switch.",
+      "action": "connect_wire_battery",
+      "state_change": { "battery_connected": true },
+      "concept": "A battery pushes electric current through a wire, like water pushed through a pipe."
+    },
+    {
+      "id": "connect_bulb",
+      "instruction": "Connect a second wire from the switch to the bulb.",
+      "action": "connect_wire_bulb",
+      "state_change": { "bulb_connected": true },
+      "concept": "The bulb needs to be part of an unbroken loop for current to reach it."
+    },
+    {
+      "id": "close_circuit",
+      "instruction": "Close the switch to complete the circuit and light the bulb.",
+      "action": "close_switch",
+      "state_change": { "circuit_closed": true, "bulb_lit": true },
+      "concept": "Closing the switch completes the loop, so current flows and the bulb glows."
+    },
+    {
+      "id": "test_conductor",
+      "instruction": "Place a plastic scale in the gap in the wire and see if the bulb still lights.",
+      "action": "test_object",
+      "state_change": { "conductivity_tested": true },
+      "concept": "Metals like copper conduct electricity; plastic and rubber do not — they are insulators."
+    }
+  ],
+  "checkpoints": [
+    {
+      "after_step": "close_circuit",
+      "question": "Will the bulb glow if a wire is removed?",
+      "expected": "no, the circuit is broken so current cannot flow",
+      "hint": "Think about whether the loop is still complete without that wire."
+    },
+    {
+      "after_step": "test_conductor",
+      "question": "Is the plastic scale a conductor?",
+      "expected": "no, plastic is an insulator and does not let current pass",
+      "hint": "Did the bulb stay lit or go out when you added the plastic scale?"
+    }
+  ]
+}

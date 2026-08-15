@@ -27,7 +27,7 @@ export default function Report({ session, resetSession }) {
     <div className="page">
       <h1>Session Report</h1>
       <p>
-        {session.student_name} · Separation of Substances
+        {session.student_name} · {session.experiment?.title}
       </p>
 
       {loading && <p>Building the report…</p>}

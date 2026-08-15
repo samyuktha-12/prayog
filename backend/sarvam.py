@@ -100,7 +100,10 @@ async def llm_stream(messages: list[dict], model: str = LOOP_LLM_MODEL, temperat
                 payload = line[len("data: "):]
                 if payload == "[DONE]":
                     return
-                delta = json.loads(payload)["choices"][0]["delta"].get("content")
+                choices = json.loads(payload).get("choices") or []
+                if not choices:
+                    continue  # e.g. a trailing usage-only chunk with no choices
+                delta = choices[0].get("delta", {}).get("content")
                 if delta:
                     yield delta
 
@@ -132,7 +135,7 @@ async def tts_stream(text: str, language: str, voice: str = DEFAULT_TTS_VOICE):
     """
     url = f"wss://{BASE_URL.removeprefix('https://')}/text-to-speech/ws?model={TTS_MODEL}"
     async with websockets.connect(
-        url, extra_headers={"Api-Subscription-Key": SARVAM_API_KEY}
+        url, additional_headers={"Api-Subscription-Key": SARVAM_API_KEY}
     ) as ws:
         await ws.send(json.dumps({
             "type": "config",

@@ -11,6 +11,7 @@ const INITIAL_SESSION = {
   student_name: 'Aarav',
   language: 'hi-IN',
   experiment_id: null,
+  experiment: null,
   scene_state: {},
   history: [],
   event_log: [],

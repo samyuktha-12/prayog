@@ -7,13 +7,14 @@ const LANGUAGES = [
   { code: 'kn-IN', label: 'ಕನ್ನಡ · Kannada' },
 ]
 
-// Static list — only chemistry_separation has a real config + backend
-// wiring right now. The rest are "claim, don't build" per CLAUDE.md §2.
+// Static list mirroring backend/experiments/*.json ids. Only chemistry
+// gets a bespoke 3D scene; the rest run the same /respond engine and
+// DialogueCard UI over GenericScene (DESIGN.md §"Experiment config schema").
 const EXPERIMENTS = [
-  { id: 'chemistry_separation', subject: 'Chemistry', title: 'Separation of Substances', icon: '🧪', accent: '#2dd4bf', live: true },
-  { id: 'physics_circuit', subject: 'Physics', title: 'Simple Electric Circuit', icon: '🔋', accent: '#60a5fa', live: false },
-  { id: 'biology_water', subject: 'Biology', title: 'Water Conduction in Plants', icon: '🌱', accent: '#4ade80', live: false },
-  { id: 'maths_area_perimeter', subject: 'Maths', title: 'Area & Perimeter Grid', icon: '📐', accent: '#facc15', live: false },
+  { id: 'chemistry_separation', subject: 'Chemistry', title: 'Separation of Substances', icon: '🧪', accent: '#2dd4bf' },
+  { id: 'physics_circuit', subject: 'Physics', title: 'Simple Electric Circuit', icon: '🔋', accent: '#60a5fa' },
+  { id: 'biology_water', subject: 'Biology', title: 'Water Conduction in Plants', icon: '🌱', accent: '#4ade80' },
+  { id: 'maths_area_perimeter', subject: 'Maths', title: 'Area & Perimeter Grid', icon: '📐', accent: '#facc15' },
 ]
 
 export default function Home({ session, updateSession, navigate }) {
@@ -21,11 +22,7 @@ export default function Home({ session, updateSession, navigate }) {
   const [generatedCards, setGeneratedCards] = useState([])
 
   function selectExperiment(card) {
-    if (!card.live) {
-      window.alert(`${card.title} is coming soon in this engine — try Chemistry for the live demo!`)
-      return
-    }
-    updateSession({ experiment_id: card.id })
+    updateSession({ experiment_id: card.id, experiment_accent: card.accent, experiment_icon: card.icon })
     navigate('setup')
   }
 
@@ -51,13 +48,12 @@ export default function Home({ session, updateSession, navigate }) {
           <button
             key={card.id}
             className="card"
-            style={{ borderColor: card.accent, opacity: card.live ? 1 : 0.6 }}
+            style={{ borderColor: card.accent }}
             onClick={() => selectExperiment(card)}
           >
             <div className="icon">{card.icon}</div>
             <div className="subject">{card.subject}</div>
             <div className="title">{card.title}</div>
-            {!card.live && <div className="badge">Coming soon</div>}
           </button>
         ))}
 
