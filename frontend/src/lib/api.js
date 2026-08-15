@@ -92,7 +92,7 @@ export async function respondStream({ session_id, input, scene_state, mode }, ca
 
 // Flag: flip to false to force the plain, non-streaming /respond voice path
 // (CLAUDE.md §9 — never let the polish pass block a working demo).
-export const STREAMING_VOICE_ENABLED = true
+export const STREAMING_VOICE_ENABLED = false
 
 export function logAction({ session_id, step_id, action, scene_state }) {
   return post('/session/action', { session_id, step_id, action, scene_state })

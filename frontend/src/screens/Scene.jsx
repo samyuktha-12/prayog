@@ -187,9 +187,8 @@ export default function Scene({ session, updateSession, navigate }) {
         await handleVoiceSendNonStreaming(base64Audio)
       }
     } catch (e) {
-      // Voice errors fall back silently — the text input keeps working,
-      // no visible error banner (unlike the text path above).
       console.warn('Voice turn failed, falling back to text:', e)
+      setError('Voice could not be processed. Allow microphone access and check that the Sarvam API key is set in Vercel.')
     } finally {
       setLoading(false)
     }
@@ -197,6 +196,7 @@ export default function Scene({ session, updateSession, navigate }) {
 
   function handleMicError(err) {
     console.warn('Mic capture failed, falling back to text:', err)
+    setError('Microphone access failed. Allow the microphone in your browser settings, then try again.')
   }
 
   return (

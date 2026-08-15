@@ -30,7 +30,10 @@ export default function Setup({ session, updateSession, navigate }) {
         session_id,
         experiment,
         scene_state: initialSceneState(experiment),
-        history: [{ role: 'guide', text: greeting_text }],
+        history: [
+          { role: 'guide', text: greeting_text },
+          { role: 'guide', text: experiment.steps[0].instruction },
+        ],
         event_log: [],
       })
       navigate('scene')
