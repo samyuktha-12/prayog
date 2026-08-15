@@ -2,6 +2,8 @@
 
 A voice-first virtual science lab for CBSE Grade-6 students, built for classrooms and homes that don't have a physical lab. A child picks a language, walks into a 3D experiment, manipulates it, asks questions out loud, and gets asked questions back — and the teacher gets a plain-language report of what the child did and understood.
 
+**Live demo:** [virtual-science-lab-bay.vercel.app](https://virtual-science-lab-bay.vercel.app/)
+
 This is a hackathon build: one experiment (Chemistry — Separation of Substances) working end to end, on an engine designed to take three more for free.
 
 ---
