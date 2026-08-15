@@ -109,6 +109,17 @@ class ReportResponse(BaseModel):
     report_text: str
 
 
+class SessionActionRequest(BaseModel):
+    session_id: str
+    step_id: str
+    action: str
+    scene_state: dict = {}
+
+
+class SessionActionResponse(BaseModel):
+    ok: bool = True
+
+
 # --- endpoints -----------------------------------------------------------
 
 @app.post("/session/start", response_model=SessionStartResponse)
@@ -172,6 +183,23 @@ def respond(body: RespondRequest):
     session_store.append_event(body.session_id, event)
 
     return RespondResponse(reply_text=child_text)
+
+
+@app.post("/session/action", response_model=SessionActionResponse)
+def session_action(body: SessionActionRequest):
+    """Log a physical scene action (stir/pour_filter/heat) directly to
+    event_log — no LLM call. Keeps the authoritative server-side event_log
+    (which /session/report reads) aware of step completions, not just
+    guide/evaluate conversational turns.
+    """
+    _get_session(body.session_id)  # 404 if unknown
+    session_store.update_scene_state(body.session_id, body.scene_state)
+    session_store.append_event(body.session_id, {
+        "type": "action",
+        "step_id": body.step_id,
+        "action": body.action,
+    })
+    return SessionActionResponse()
 
 
 @app.post("/session/report", response_model=ReportResponse)

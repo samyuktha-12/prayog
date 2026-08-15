@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import ChemScene from '../scene/ChemScene.jsx'
 import DialogueCard from '../components/DialogueCard.jsx'
-import { respond } from '../lib/api.js'
+import { respond, logAction } from '../lib/api.js'
 import {
   CHEMISTRY_EXPERIMENT,
   getCurrentStep,
@@ -52,6 +52,16 @@ export default function Scene({ session, updateSession, navigate }) {
         { type: 'action', step_id: currentStep.id, action: currentStep.action },
       ],
     })
+
+    // Best-effort: tell the backend's authoritative event_log too, so
+    // /session/report can see step completions, not just conversational
+    // turns. Local UI already updated regardless of whether this succeeds.
+    logAction({
+      session_id: session.session_id,
+      step_id: currentStep.id,
+      action: currentStep.action,
+      scene_state: newSceneState,
+    }).catch(() => {})
   }
 
   async function handleSend(text) {

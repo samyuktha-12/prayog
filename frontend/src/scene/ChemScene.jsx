@@ -7,8 +7,8 @@ import { DoubleSide } from 'three'
 // final bench-side framing (DESIGN.md Screen 3: "fake the walk-up").
 function CameraDolly() {
   const { camera } = useThree()
-  const start = useRef([0, 3.4, 8])
-  const end = useRef([0, 1.5, 4])
+  const start = useRef([0, 3.6, 9])
+  const end = useRef([0, 1.6, 4.8])
   const t = useRef(0)
   const done = useRef(false)
 
@@ -141,7 +141,7 @@ function Beaker({ stepAction, disabled, mixture, sandSeparated, onAction, onPour
   return (
     <group
       ref={groupRef}
-      position={[-2.2, 0.5, 0]}
+      position={[-1.9, 0.5, 0]}
       onClick={handleClick}
       onPointerDown={handlePointerDown}
       onPointerOver={() => setHovered(true)}

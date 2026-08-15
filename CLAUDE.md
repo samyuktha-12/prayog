@@ -157,6 +157,15 @@ Out: `{reply_text, reply_audio?, transcript?}`
 `mode="evaluate"` → the child is answering a checkpoint question; the LLM judges it and
 affirms or gently corrects. Result appended to `event_log`.
 
+### `POST /session/action`
+In: `{session_id, step_id, action, scene_state}`
+Out: `{ok}`
+Logs a physical scene action (stir/pour_filter/heat — the 3D tap/drag gestures, not a
+conversational turn) straight to `event_log` and updates stored `scene_state`. No LLM call —
+this exists so the server-side `event_log` that `/session/report` reads knows about step
+completions, not just `guide`/`evaluate` turns. Added 2026-08-15 once the 3D scene actually
+had actions to log; not in the original endpoint sketch.
+
 ### `POST /session/report`
 In: `{session_id}`
 Out: `{report_text}` — a 4–6 line **teacher** report (English) built from `event_log` by

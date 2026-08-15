@@ -21,6 +21,10 @@ export function respond({ session_id, input, input_type, scene_state, mode }) {
   return post('/respond', { session_id, input, input_type, scene_state, mode })
 }
 
+export function logAction({ session_id, step_id, action, scene_state }) {
+  return post('/session/action', { session_id, step_id, action, scene_state })
+}
+
 export function getReport({ session_id }) {
   return post('/session/report', { session_id })
 }
