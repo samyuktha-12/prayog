@@ -1,3 +1,4 @@
+import base64
 import json
 import re
 from pathlib import Path
@@ -99,6 +100,8 @@ class RespondRequest(BaseModel):
 
 class RespondResponse(BaseModel):
     reply_text: str
+    reply_audio: Optional[str] = None  # base64-encoded WAV, voice turns only
+    transcript: Optional[str] = None   # ASR transcript, voice turns only
 
 
 class ReportRequest(BaseModel):
@@ -142,14 +145,26 @@ def start_session(body: SessionStartRequest):
 
 @app.post("/respond", response_model=RespondResponse)
 def respond(body: RespondRequest):
-    if body.input_type != "text":
-        raise HTTPException(status_code=400, detail="Only input_type='text' is implemented so far")
-
     session = _get_session(body.session_id)
     experiment = _load_experiment(session["experiment_id"])
 
     session_store.update_scene_state(body.session_id, body.scene_state)
-    transcript = body.input
+
+    if body.input_type == "audio":
+        # `input` carries base64-encoded audio (webm/opus from the browser's
+        # MediaRecorder) rather than a file upload, so voice and text share
+        # one JSON request shape through this endpoint.
+        try:
+            audio_bytes = base64.b64decode(body.input)
+        except Exception:
+            raise HTTPException(status_code=400, detail="input must be base64-encoded audio when input_type='audio'")
+        try:
+            transcript = sarvam.asr(audio_bytes, session["language"], filename="audio.webm")
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Speech-to-text failed: {e}")
+    else:
+        transcript = body.input
+
     session_store.append_history(body.session_id, "child", transcript)
 
     current_step_id = body.scene_state.get("current_step_id")
@@ -182,7 +197,20 @@ def respond(body: RespondRequest):
     session_store.append_history(body.session_id, "guide", child_text)
     session_store.append_event(body.session_id, event)
 
-    return RespondResponse(reply_text=child_text)
+    reply_audio = None
+    if body.input_type == "audio":
+        try:
+            audio_out = sarvam.tts(child_text, session["language"])
+            reply_audio = base64.b64encode(audio_out).decode("ascii")
+        except Exception:
+            # Degrade to a text-only reply rather than losing the whole turn.
+            reply_audio = None
+
+    return RespondResponse(
+        reply_text=child_text,
+        reply_audio=reply_audio,
+        transcript=transcript if body.input_type == "audio" else None,
+    )
 
 
 @app.post("/session/action", response_model=SessionActionResponse)

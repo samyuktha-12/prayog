@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import MicButton from './MicButton.jsx'
 
-export default function DialogueCard({ guideLine, stepLabel, loading, onSend }) {
+export default function DialogueCard({ guideLine, stepLabel, loading, onSend, onRecordedAudio, onMicError }) {
   const [text, setText] = useState('')
 
   function handleSubmit(e) {
@@ -15,10 +16,11 @@ export default function DialogueCard({ guideLine, stepLabel, loading, onSend }) 
       <div className="step-indicator">{stepLabel}</div>
       <div className="guide-line">{loading ? 'Thinking…' : guideLine}</div>
       <form className="input-row" onSubmit={handleSubmit}>
+        <MicButton disabled={loading} onRecorded={onRecordedAudio} onError={onMicError} />
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ask a question or answer here…"
+          placeholder="Ask a question, or hold the mic to talk…"
           disabled={loading}
         />
         <button className="btn btn-primary" type="submit" disabled={loading || !text.trim()}>

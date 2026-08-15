@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ChemScene from '../scene/ChemScene.jsx'
 import DialogueCard from '../components/DialogueCard.jsx'
 import { respond, logAction } from '../lib/api.js'
+import { blobToBase64, playAudioFromBase64 } from '../lib/voice.js'
 import {
   CHEMISTRY_EXPERIMENT,
   getCurrentStep,
@@ -64,6 +65,38 @@ export default function Scene({ session, updateSession, navigate }) {
     }).catch(() => {})
   }
 
+  // Shared tail end of a /respond turn, used by both the text and voice
+  // paths — same brain, per CLAUDE.md §4. Only the voice path passes
+  // reply_audio (text replies are never spoken).
+  function applyRespondResult({ transcript, reply_text, reply_audio }) {
+    let newSceneState = sceneState
+    const newHistoryEntries = [
+      { role: 'child', text: transcript },
+      { role: 'guide', text: reply_text },
+    ]
+
+    if (mode === 'evaluate') {
+      newSceneState = applyCheckpointAnswered(sceneState, experiment)
+      if (!newSceneState.completed) {
+        const nextStep = getCurrentStep(experiment, newSceneState)
+        newHistoryEntries.push({ role: 'guide', text: nextStep.instruction })
+      }
+    }
+
+    updateSession({
+      scene_state: newSceneState,
+      history: pushHistory(newHistoryEntries),
+      event_log: [
+        ...session.event_log,
+        { type: mode === 'evaluate' ? 'checkpoint' : 'guide_turn', input: transcript, reply: reply_text },
+      ],
+    })
+
+    if (reply_audio) {
+      playAudioFromBase64(reply_audio).catch(() => {})
+    }
+  }
+
   async function handleSend(text) {
     const trimmed = text.trim()
     if (!trimmed || loading) return
@@ -77,34 +110,38 @@ export default function Scene({ session, updateSession, navigate }) {
         scene_state: sceneState,
         mode,
       })
-
-      let newSceneState = sceneState
-      const newHistoryEntries = [
-        { role: 'child', text: trimmed },
-        { role: 'guide', text: reply_text },
-      ]
-
-      if (mode === 'evaluate') {
-        newSceneState = applyCheckpointAnswered(sceneState, experiment)
-        if (!newSceneState.completed) {
-          const nextStep = getCurrentStep(experiment, newSceneState)
-          newHistoryEntries.push({ role: 'guide', text: nextStep.instruction })
-        }
-      }
-
-      updateSession({
-        scene_state: newSceneState,
-        history: pushHistory(newHistoryEntries),
-        event_log: [
-          ...session.event_log,
-          { type: mode === 'evaluate' ? 'checkpoint' : 'guide_turn', input: trimmed, reply: reply_text },
-        ],
-      })
+      applyRespondResult({ transcript: trimmed, reply_text, reply_audio: null })
     } catch (e) {
       setError('Could not reach the lab. Check the backend and try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleVoiceSend(blob) {
+    if (loading) return
+    setLoading(true)
+    try {
+      const base64Audio = await blobToBase64(blob)
+      const { reply_text, reply_audio, transcript } = await respond({
+        session_id: session.session_id,
+        input: base64Audio,
+        input_type: 'audio',
+        scene_state: sceneState,
+        mode,
+      })
+      applyRespondResult({ transcript: transcript || '(voice message)', reply_text, reply_audio })
+    } catch (e) {
+      // Voice errors fall back silently — the text input keeps working,
+      // no visible error banner (unlike the text path above).
+      console.warn('Voice turn failed, falling back to text:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleMicError(err) {
+    console.warn('Mic capture failed, falling back to text:', err)
   }
 
   return (
@@ -134,6 +171,8 @@ export default function Scene({ session, updateSession, navigate }) {
         stepLabel={`Step ${stepIndex + 1} of ${experiment.steps.length}`}
         loading={loading}
         onSend={handleSend}
+        onRecordedAudio={handleVoiceSend}
+        onMicError={handleMicError}
       />
     </div>
   )
