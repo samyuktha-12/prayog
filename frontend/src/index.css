@@ -145,6 +145,40 @@ h1 {
   line-height: 1.6;
 }
 
+.evaluator-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  color: #174e48;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(35, 102, 95, 0.2);
+  font-size: 13px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.evaluator-note:hover {
+  background: white;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.evaluator-note > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 6px;
+  color: white;
+  background: #23665f;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .hero-kicker {
   color: #23665f;
   font-size: 13px;

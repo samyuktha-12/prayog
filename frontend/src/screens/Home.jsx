@@ -77,6 +77,10 @@ export default function Home({ session, updateSession, navigate }) {
             Prayog gives Grade-6 learners guided, hands-on experiments in their own language.
             Ask questions by voice, explore each step, and finish with a teacher-friendly report.
           </p>
+          <a className="evaluator-note" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+            <span aria-hidden="true">⌘</span>
+            <span><strong>For evaluators:</strong> source code and setup notes are on GitHub.</span>
+          </a>
         </div>
         <LabIllustration />
       </section>
