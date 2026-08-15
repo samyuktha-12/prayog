@@ -112,15 +112,26 @@ def _pop_clause(buffer: str) -> tuple[Optional[str], str]:
     return None, buffer
 
 
+_CLAUSE_TTS_TIMEOUT_S = 8.0
+
+
 async def _synthesize_clause(clause: str, language: str) -> bytes:
     """Collect one clause's WebSocket-streamed audio into a single complete
     chunk. We don't relay Bulbul's raw sub-chunks to the frontend — a partial
     MP3 frame isn't independently playable, but one clause's full audio is.
+
+    Hard-capped with a timeout: a stuck WebSocket (seen in practice — the
+    `websockets` library can hang on this box regardless of event loop
+    policy) must degrade that one clause to text-only, not stall the whole
+    turn indefinitely.
     """
-    parts = []
-    async for chunk in sarvam.tts_stream(clause, language):
-        parts.append(chunk)
-    return b"".join(parts)
+    async def _collect():
+        parts = []
+        async for chunk in sarvam.tts_stream(clause, language):
+            parts.append(chunk)
+        return b"".join(parts)
+
+    return await asyncio.wait_for(_collect(), timeout=_CLAUSE_TTS_TIMEOUT_S)
 
 
 def _sse(event: dict) -> str:
