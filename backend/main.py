@@ -116,22 +116,25 @@ _CLAUSE_TTS_TIMEOUT_S = 8.0
 
 
 async def _synthesize_clause(clause: str, language: str) -> bytes:
-    """Collect one clause's WebSocket-streamed audio into a single complete
-    chunk. We don't relay Bulbul's raw sub-chunks to the frontend — a partial
-    MP3 frame isn't independently playable, but one clause's full audio is.
+    """Synthesize one clause's audio.
 
-    Hard-capped with a timeout: a stuck WebSocket (seen in practice — the
-    `websockets` library can hang on this box regardless of event loop
-    policy) must degrade that one clause to text-only, not stall the whole
-    turn indefinitely.
+    NOTE — deviates from CLAUDE.md §8 item 2's "pipe into Bulbul WebSocket
+    TTS": verified (3 independent reproductions, in and out of FastAPI,
+    under both uvloop and plain asyncio) that opening a `websockets`
+    connection while an `httpx.AsyncClient` streaming connection to the
+    same host (llm_stream) is still open hangs indefinitely in this
+    environment — not a design bug, a real httpx/websockets interaction.
+    Falling back to the plain REST tts() call (already proven reliable)
+    per §9's own rule: never let a polish-pass technique block a working
+    demo. The actual latency win — audio for the first clause before the
+    full LLM reply exists — is unaffected; only the transport for each
+    clause's synthesis changed from WS to REST. Revisit if that hang is
+    ever root-caused.
     """
-    async def _collect():
-        parts = []
-        async for chunk in sarvam.tts_stream(clause, language):
-            parts.append(chunk)
-        return b"".join(parts)
-
-    return await asyncio.wait_for(_collect(), timeout=_CLAUSE_TTS_TIMEOUT_S)
+    return await asyncio.wait_for(
+        asyncio.to_thread(sarvam.tts, clause, language),
+        timeout=_CLAUSE_TTS_TIMEOUT_S,
+    )
 
 
 def _sse(event: dict) -> str:
@@ -277,24 +280,27 @@ def respond(body: RespondRequest):
 @app.post("/respond/stream")
 async def respond_stream(body: RespondRequest):
     """Streaming twin of /respond, voice-only (CLAUDE.md §8 items 1-2):
-    streams llm_stream() and speaks each clause via Bulbul WebSocket TTS as
-    soon as it's ready, instead of waiting for the full reply before any
-    audio exists. Frontend opts in via a flag and falls back to the plain
-    /respond for input_type="text" or if streaming fails.
+    streams llm_stream() and speaks each guide-mode clause as soon as it's
+    ready, instead of waiting for the full reply before any audio exists.
+    Frontend opts in via a flag and falls back to the plain /respond for
+    input_type="text" or if streaming fails.
 
     Response is newline-delimited JSON events, not a single JSON body:
       {"type": "transcript", "transcript": str}
-      {"type": "text_delta", "text": str}          — one per LLM token/chunk
+      {"type": "text_delta", "text": str}          — guide mode only, one
+                                                      per LLM token/chunk
       {"type": "audio_chunk", "audio": base64}     — one complete, playable
                                                       clause of audio
       {"type": "done", "reply_text": str, "verdict": str|None}
       {"type": "error", "message": str}            — mid-stream failure
 
-    Evaluate-mode replies never stream audio clause-by-clause: the trailing
-    CORRECT/NEEDS_WORK verdict token has no clause boundary before it, so
-    speaking clauses as they arrive risks reading the verdict aloud to the
-    child. Evaluate mode waits for the full reply, strips the verdict, and
-    only then synthesizes — one audio_chunk instead of several.
+    Evaluate-mode replies never stream clause-by-clause — neither text nor
+    audio. The trailing CORRECT/NEEDS_WORK verdict token has no clause
+    boundary before it, so anything emitted incrementally (a raw "COR"...
+    "RECT" text_delta included) risks the verdict reaching the child before
+    it's stripped. Evaluate mode waits for the full reply, strips the
+    verdict, and only then emits — one audio_chunk, and reply_text arrives
+    already-cleaned in "done".
     """
     if body.input_type != "audio":
         raise HTTPException(status_code=400, detail="Streaming is only implemented for input_type='audio'")
@@ -334,9 +340,11 @@ async def respond_stream(body: RespondRequest):
             async for delta in sarvam.llm_stream(messages):
                 full_text += delta
                 clause_buffer += delta
-                yield _sse({"type": "text_delta", "text": delta})
 
                 if mode == "guide":
+                    # Safe to show progressively — nothing is ever trimmed
+                    # from a guide reply.
+                    yield _sse({"type": "text_delta", "text": delta})
                     clause, clause_buffer = _pop_clause(clause_buffer)
                     while clause:
                         try:

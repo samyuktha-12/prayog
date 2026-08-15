@@ -149,10 +149,9 @@ export function playAudioFromBase64(base64, mimeType = 'audio/wav') {
 
 // Sequential player for progressively-arriving audio chunks (streaming
 // voice path). Each enqueued chunk must be independently playable — the
-// backend accumulates each clause's audio before sending it, so this is
-// never handed a partial MP3 frame.
+// backend synthesizes each clause as one complete WAV before sending it.
 export class AudioQueue {
-  constructor(mimeType = 'audio/mp3') {
+  constructor(mimeType = 'audio/wav') {
     this.mimeType = mimeType
     this.queue = []
     this.playing = false
