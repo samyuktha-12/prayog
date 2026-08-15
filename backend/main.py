@@ -35,6 +35,20 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/warmup")
+def warmup():
+    """Throwaway call to kill Sarvam's cold-start latency before the child's
+    first real turn (CLAUDE.md §8 item 5). Frontend fires this on Scene
+    mount; touches no session state and swallows its own failures so it can
+    never block the demo.
+    """
+    try:
+        sarvam.llm([{"role": "user", "content": "hi"}])
+    except Exception:
+        pass
+    return {"ok": True}
+
+
 @app.get("/experiments/{experiment_id}")
 def get_experiment(experiment_id: str):
     # Lets the frontend drive step/checkpoint progression from the same

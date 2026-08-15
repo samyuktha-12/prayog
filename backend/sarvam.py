@@ -24,7 +24,9 @@ import asyncio
 import base64
 import json
 import os
+import ssl
 
+import certifi
 import httpx
 import websockets
 from dotenv import load_dotenv
@@ -33,6 +35,12 @@ load_dotenv()
 
 SARVAM_API_KEY = os.environ["SARVAM_API_KEY"]
 BASE_URL = "https://api.sarvam.ai"
+
+# websockets' own SSL handling doesn't always pick up the same trust store
+# httpx does (notably on macOS python.org/Python.framework installs) —
+# pin it to certifi's bundle explicitly rather than depend on the local
+# Python install having working system certs.
+_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 STT_MODEL = "saaras:v3"
 LOOP_LLM_MODEL = "sarvam-105b-conversations"
@@ -135,7 +143,7 @@ async def tts_stream(text: str, language: str, voice: str = DEFAULT_TTS_VOICE):
     """
     url = f"wss://{BASE_URL.removeprefix('https://')}/text-to-speech/ws?model={TTS_MODEL}"
     async with websockets.connect(
-        url, additional_headers={"Api-Subscription-Key": SARVAM_API_KEY}
+        url, additional_headers={"Api-Subscription-Key": SARVAM_API_KEY}, ssl=_SSL_CONTEXT
     ) as ws:
         await ws.send(json.dumps({
             "type": "config",

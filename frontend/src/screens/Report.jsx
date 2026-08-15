@@ -23,12 +23,28 @@ export default function Report({ session, resetSession }) {
     }
   }, [session.session_id])
 
+  const totalSteps = session.experiment?.steps?.length ?? 0
+  const stepsCompleted = session.event_log.filter((e) => e.type === 'action').length
+  const questionsAsked = session.event_log.filter((e) => e.type === 'guide_turn').length
+  const checkpointsAnswered = session.event_log.filter((e) => e.type === 'checkpoint').length
+
   return (
-    <div className="page">
-      <h1>Session Report</h1>
-      <p>
-        {session.student_name} · {session.experiment?.title}
-      </p>
+    <div className="page" style={{ '--accent': session.experiment_accent }}>
+      <div className="report-header">
+        <div className="icon-badge">{session.experiment_icon ?? '📋'}</div>
+        <div>
+          <h1 style={{ margin: 0 }}>Session Report</h1>
+          <div className="subtitle">
+            {session.student_name} · {session.experiment?.title}
+          </div>
+        </div>
+      </div>
+
+      <div className="stat-row">
+        <span className="stat-chip">✅ {stepsCompleted}/{totalSteps} steps completed</span>
+        <span className="stat-chip">💬 {questionsAsked} questions asked</span>
+        <span className="stat-chip">🎯 {checkpointsAnswered} checkpoints answered</span>
+      </div>
 
       {loading && <p>Building the report…</p>}
       {error && <div className="error-banner">{error}</div>}

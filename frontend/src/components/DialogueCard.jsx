@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import MicButton from './MicButton.jsx'
 
-export default function DialogueCard({ guideLine, stepLabel, loading, onSend, onRecordedAudio, onMicError }) {
+export default function DialogueCard({
+  guideLine,
+  stepLabel,
+  stepIndex,
+  totalSteps,
+  loading,
+  onSend,
+  onRecordedAudio,
+  onMicError,
+}) {
   const [text, setText] = useState('')
 
   function handleSubmit(e) {
@@ -13,7 +22,16 @@ export default function DialogueCard({ guideLine, stepLabel, loading, onSend, on
 
   return (
     <div className="dialogue-card">
-      <div className="step-indicator">{stepLabel}</div>
+      <div className="step-indicator">
+        <span className="step-label">{stepLabel}</span>
+        {Number.isInteger(totalSteps) && (
+          <div className="step-dots">
+            {Array.from({ length: totalSteps }, (_, i) => (
+              <span key={i} className={`step-dot${i < stepIndex ? ' done' : i === stepIndex ? ' current' : ''}`} />
+            ))}
+          </div>
+        )}
+      </div>
       <div className="guide-line">{loading ? 'Thinking…' : guideLine}</div>
       <form className="input-row" onSubmit={handleSubmit}>
         <MicButton disabled={loading} onRecorded={onRecordedAudio} onError={onMicError} />

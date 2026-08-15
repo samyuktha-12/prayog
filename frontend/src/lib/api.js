@@ -96,3 +96,10 @@ export function logAction({ session_id, step_id, action, scene_state }) {
 export function getReport({ session_id }) {
   return post('/session/report', { session_id })
 }
+
+// Fire-and-forget: kills the Sarvam pipeline's cold-start latency before the
+// child's first real turn (CLAUDE.md §8 item 5). Best-effort — errors are
+// swallowed so a failed warmup never blocks or shows anything on screen.
+export function warmPipeline() {
+  return fetch(`${API_BASE}/warmup`, { method: 'POST' }).catch(() => {})
+}

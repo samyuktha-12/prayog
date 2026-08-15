@@ -42,9 +42,15 @@ export default function Setup({ session, updateSession, navigate }) {
   }
 
   return (
-    <div className="page">
+    <div className="page" style={{ '--accent': session.experiment_accent }}>
       <h1>Get Ready</h1>
       {error && <div className="error-banner">{error}</div>}
+
+      {session.experiment_icon && (
+        <div className="chip accent">
+          <span style={{ fontSize: 20 }}>{session.experiment_icon}</span>
+        </div>
+      )}
 
       <label>
         Name

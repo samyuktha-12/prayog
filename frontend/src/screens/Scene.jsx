@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ChemScene from '../scene/ChemScene.jsx'
 import GenericScene from '../scene/GenericScene.jsx'
 import DialogueCard from '../components/DialogueCard.jsx'
-import { respond, respondStream, logAction, STREAMING_VOICE_ENABLED } from '../lib/api.js'
+import { respond, respondStream, logAction, warmPipeline, STREAMING_VOICE_ENABLED } from '../lib/api.js'
 import { blobToBase64, playAudioFromBase64, AudioQueue } from '../lib/voice.js'
 import {
   getCurrentStep,
@@ -22,6 +22,14 @@ export default function Scene({ session, updateSession, navigate }) {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Fire once as the scene mounts, before the child says anything — kills
+  // the Sarvam pipeline's cold-start latency on the first real turn
+  // (CLAUDE.md §8 item 5). Best-effort: warmPipeline() swallows its own
+  // errors, so a failure here never blocks the demo.
+  useEffect(() => {
+    warmPipeline()
+  }, [])
 
   const lastGuideLine =
     [...session.history].reverse().find((h) => h.role === 'guide')?.text ?? currentStep.instruction
@@ -192,7 +200,7 @@ export default function Scene({ session, updateSession, navigate }) {
   }
 
   return (
-    <div className="scene-stage">
+    <div className="scene-stage" style={{ '--accent': experiment.accent }}>
       {experiment.id === 'chemistry_separation' ? (
         <ChemScene
           stepAction={currentStep.action}
@@ -210,7 +218,7 @@ export default function Scene({ session, updateSession, navigate }) {
       )}
 
       <div className="scene-topbar">
-        <div className="chip">{experiment.title}</div>
+        <div className="chip accent">{experiment.title}</div>
         <button
           className="btn btn-primary btn-small"
           disabled={!sceneState.completed}
@@ -225,6 +233,8 @@ export default function Scene({ session, updateSession, navigate }) {
       <DialogueCard
         guideLine={lastGuideLine}
         stepLabel={`Step ${stepIndex + 1} of ${experiment.steps.length}`}
+        stepIndex={stepIndex}
+        totalSteps={experiment.steps.length}
         loading={loading}
         onSend={handleSend}
         onRecordedAudio={handleVoiceSend}
