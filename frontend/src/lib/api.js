@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+// Locally, FastAPI runs on its own port. In Vercel the frontend and the
+// serverless API share an origin, so an empty base keeps requests on the
+// deployed site instead of accidentally calling the visitor's localhost.
+const API_BASE = import.meta.env.VITE_API_BASE ?? (
+  import.meta.env.DEV ? 'http://localhost:8000' : ''
+)
 
 async function post(path, body) {
   const res = await fetch(`${API_BASE}${path}`, {

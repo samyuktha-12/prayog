@@ -33,7 +33,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SARVAM_API_KEY = os.environ["SARVAM_API_KEY"]
+SARVAM_API_KEY = os.getenv("SARVAM_API_KEY", "")
 BASE_URL = "https://api.sarvam.ai"
 
 # websockets' own SSL handling doesn't always pick up the same trust store
@@ -48,7 +48,17 @@ REPORT_LLM_MODEL = "sarvam-105b"
 TTS_MODEL = "bulbul:v3"
 DEFAULT_TTS_VOICE = "priya"
 
-_AUTH_HEADERS = {"api-subscription-key": SARVAM_API_KEY}
+def _auth_headers() -> dict[str, str]:
+    """Return auth headers only when the backend is configured.
+
+    Keep import-time startup healthy on Vercel so static pages and /health
+    remain available while a deployment is waiting for its secret. Actual
+    Sarvam calls fail with an actionable error instead of crashing the whole
+    serverless function during import.
+    """
+    if not SARVAM_API_KEY:
+        raise RuntimeError("SARVAM_API_KEY is not configured on the server")
+    return {"api-subscription-key": SARVAM_API_KEY}
 
 
 def asr(audio_bytes: bytes, language: str, filename: str = "audio.wav") -> str:
@@ -58,7 +68,7 @@ def asr(audio_bytes: bytes, language: str, filename: str = "audio.wav") -> str:
     """
     response = httpx.post(
         f"{BASE_URL}/speech-to-text",
-        headers=_AUTH_HEADERS,
+        headers=_auth_headers(),
         files={"file": (filename, audio_bytes)},
         data={
             "model": STT_MODEL,
@@ -75,7 +85,7 @@ def llm(messages: list[dict], model: str = LOOP_LLM_MODEL, temperature: float = 
     """OpenAI-compatible chat completion. POST /v1/chat/completions."""
     response = httpx.post(
         f"{BASE_URL}/v1/chat/completions",
-        headers={**_AUTH_HEADERS, "Content-Type": "application/json"},
+        headers={**_auth_headers(), "Content-Type": "application/json"},
         json={
             "model": model,
             "messages": messages,
@@ -93,7 +103,7 @@ async def llm_stream(messages: list[dict], model: str = LOOP_LLM_MODEL, temperat
         async with client.stream(
             "POST",
             f"{BASE_URL}/v1/chat/completions",
-            headers={**_AUTH_HEADERS, "Content-Type": "application/json"},
+            headers={**_auth_headers(), "Content-Type": "application/json"},
             json={
                 "model": model,
                 "messages": messages,
@@ -123,7 +133,7 @@ def tts(text: str, language: str, voice: str = DEFAULT_TTS_VOICE) -> bytes:
     """
     response = httpx.post(
         f"{BASE_URL}/text-to-speech",
-        headers={**_AUTH_HEADERS, "Content-Type": "application/json"},
+        headers={**_auth_headers(), "Content-Type": "application/json"},
         json={
             "text": text,
             "language_code": language,
@@ -153,7 +163,9 @@ async def tts_stream(text: str, language: str, voice: str = DEFAULT_TTS_VOICE):
     """
     url = f"wss://{BASE_URL.removeprefix('https://')}/text-to-speech/ws?model={TTS_MODEL}"
     async with websockets.connect(
-        url, additional_headers={"Api-Subscription-Key": SARVAM_API_KEY}, ssl=_SSL_CONTEXT
+        url,
+        additional_headers={"Api-Subscription-Key": _auth_headers()["api-subscription-key"]},
+        ssl=_SSL_CONTEXT,
     ) as ws:
         await ws.send(json.dumps({
             "type": "config",
