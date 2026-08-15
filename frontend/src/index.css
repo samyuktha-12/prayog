@@ -1,0 +1,277 @@
+:root {
+  --bg: #fef9f3;
+  --surface: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --radius: 20px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --accent-chem: #2dd4bf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.page {
+  min-height: 100vh;
+  padding: 32px 24px 120px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 28px;
+  margin: 8px 0 24px;
+}
+
+.chip {
+  display: inline-block;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}
+
+.segmented {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.segmented button {
+  flex: 1;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.segmented button.active {
+  border-color: var(--accent-chem);
+  background: #ecfdf9;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  padding: 20px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 140px;
+}
+
+.card .icon {
+  font-size: 32px;
+}
+
+.card .subject {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+.card .title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.card .badge {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card.create {
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #d1d5db;
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-block;
+  padding: 16px 28px;
+  border-radius: 999px;
+  border: none;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent-chem);
+  color: #063a35;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+  margin: 8px 0 16px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.dropzone {
+  border: 2px dashed #d1d5db;
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.scene-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scene-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.scene-topbar > * {
+  pointer-events: auto;
+}
+
+.btn-small {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.scene-error {
+  position: absolute;
+  top: 84px;
+  left: 24px;
+  right: 24px;
+  z-index: 2;
+}
+
+.dialogue-card {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
+  padding: 20px 24px calc(20px + env(safe-area-inset-bottom));
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.step-indicator {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.guide-line {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  min-height: 48px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 999px;
+  border: 2px solid #e5e7eb;
+  font-size: 16px;
+}
+
+.error-banner {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.report-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
