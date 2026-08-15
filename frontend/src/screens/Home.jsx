@@ -57,6 +57,12 @@ export default function Home({ session, updateSession, navigate }) {
     <div className="page" style={{ maxWidth: 1080 }}>
       <div className="home-header">
         <div className="brand">Prayog</div>
+        <a className="header-github-link" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.36 6.84 9.72.5.1.68-.22.68-.49 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.2-3.37-1.2-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.67.35-1.11.64-1.37-2.22-.26-4.56-1.15-4.56-5.12 0-1.13.39-2.05 1.03-2.77-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.06A9.3 9.3 0 0 1 12 7.1c.85 0 1.7.12 2.5.34 1.9-1.34 2.74-1.06 2.74-1.06.55 1.42.2 2.47.1 2.73.64.72 1.03 1.64 1.03 2.77 0 3.98-2.35 4.85-4.59 5.11.36.32.68.93.68 1.88 0 1.36-.01 2.46-.01 2.8 0 .27.18.6.69.49A10.25 10.25 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" />
+          </svg>
+          <span>View on GitHub</span>
+        </a>
         <div className="user-chip">
           <div className="avatar">A</div>
           <div style={{ fontSize: 15, fontWeight: 600 }}>Aarav · Grade 6</div>
