@@ -140,6 +140,16 @@ def tts(text: str, language: str, voice: str = DEFAULT_TTS_VOICE) -> bytes:
 async def tts_stream(text: str, language: str, voice: str = DEFAULT_TTS_VOICE):
     """Streaming TTS over WebSocket — optimizes time-to-first-audio-byte
     (CLAUDE.md §8 item 2). Yields decoded audio chunk bytes as they arrive.
+
+    Works reliably called on its own (see __main__ below). CAUTION: opening
+    this websocket while an httpx.AsyncClient streaming connection to the
+    same host is still open elsewhere in the same process/loop (e.g. a
+    concurrent llm_stream() call) hangs indefinitely — reproduced 3x,
+    independent of event loop policy (plain asyncio and uvloop both). Not
+    used by main.py's /respond/stream for exactly this reason — it
+    synthesizes clauses via the plain REST tts() instead. Wrap any call
+    site that might run concurrently with an open llm_stream in
+    asyncio.wait_for(...) until this is root-caused.
     """
     url = f"wss://{BASE_URL.removeprefix('https://')}/text-to-speech/ws?model={TTS_MODEL}"
     async with websockets.connect(

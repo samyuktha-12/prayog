@@ -4,40 +4,56 @@ import { useState } from 'react'
 // scene generation — a fake delay followed by a pre-baked card reveal.
 export default function CreateExperimentModal({ onClose, onGenerated }) {
   const [name, setName] = useState('')
-  const [generating, setGenerating] = useState(false)
+  const [phase, setPhase] = useState('form') // 'form' | 'generating' | 'done'
 
   function handleGenerate() {
-    setGenerating(true)
-    setTimeout(() => onGenerated(name), 2400)
+    setPhase('generating')
+    setTimeout(() => {
+      onGenerated(name)
+      setPhase('done')
+    }, 2200)
   }
 
   return (
-    <div className="overlay" onClick={generating ? undefined : onClose}>
+    <div className="overlay" onClick={phase === 'generating' ? undefined : onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        {generating ? (
+        <div className="modal-title">Create Experiment</div>
+
+        {phase === 'generating' && (
+          <div className="modal-generating">
+            <div className="modal-spinner" />
+            <p>Generating your lab…</p>
+          </div>
+        )}
+
+        {phase === 'form' && (
           <>
-            <h2>Generating your lab with Codex…</h2>
-            <p>Reading the experiment sheet and building a 3D scene just for this experiment.</p>
-          </>
-        ) : (
-          <>
-            <h2>Create Experiment</h2>
             <input
               className="field"
               placeholder="Experiment name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              style={{ margin: 0 }}
             />
             <div className="dropzone">Upload an experiment sheet (PDF)</div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={onClose}>
+            <div className="modal-actions">
+              <button className="btn-light" onClick={onClose}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={handleGenerate}>
+              <button className="btn-dark" onClick={handleGenerate}>
                 Generate lab
               </button>
             </div>
           </>
+        )}
+
+        {phase === 'done' && (
+          <div className="modal-done">
+            <p>Lab generated! It's been added to your experiments.</p>
+            <button className="btn-dark" onClick={onClose}>
+              Done
+            </button>
+          </div>
         )}
       </div>
     </div>
