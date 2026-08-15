@@ -79,7 +79,7 @@ export default function Home({ session, updateSession, navigate }) {
           </p>
           <a className="evaluator-note" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
             <span aria-hidden="true">⌘</span>
-            <span><strong>For evaluators:</strong> source code and setup notes are on GitHub.</span>
+            <span>View source code &amp; setup notes on GitHub.</span>
           </a>
         </div>
         <LabIllustration />
