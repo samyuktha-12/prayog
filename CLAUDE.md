@@ -26,7 +26,8 @@ the child did and understood. Everything is in the child's language.
   → filter → evaporate). This is the hero. It must work flawlessly end to end.
 - The full loop for that one experiment: manipulate → ask (voice/chat) → get answered →
   get quizzed back → evaluated → session report.
-- One demo language selectable at start (default: Hindi or Tamil — confirm at build time).
+- One demo language selectable at start. **Locked: Hindi (`hi-IN`)** as the default demo
+  language (2026-08-15).
 
 ### Claim, don't build (put on a slide / mock only)
 - The other 3 subjects (Physics circuit, Biology water-in-plants, Maths area/perimeter)
@@ -56,17 +57,27 @@ the child did and understood. Everything is in the child's language.
 - **Frontend:** **Vite + React** + **@react-three/fiber** (Three.js) for the 3D scene.
   Plain React state; no Redux. (Next.js is acceptable only if already scaffolded.)
 - **Voice/LLM:** **Cloud Sarvam**, self-orchestrated as REST/WebSocket calls:
-  - **ASR:** Sarvam Speech-to-Text — **Saaras v3**, transcription mode (same-language out).
-  - **Loop LLM:** **Sarvam-30B** (chosen for LOW LATENCY — do NOT use 105B in the loop).
-  - **TTS:** **Bulbul v3** (REST first; WebSocket streaming for the polish pass).
-  - **Report LLM:** **Sarvam-105B**, used ONCE for the end-of-session report (latency
+  - **ASR:** Sarvam Speech-to-Text — **Saaras v3** (`saaras:v3`), `mode=transcribe`
+    (same-language out).
+  - **Loop LLM:** **`sarvam-105b-conversations`** (chosen for LOW LATENCY — this is the
+    real-time-dialogue variant). NOTE: `sarvam-30b` referenced in earlier drafts of this
+    doc is **deprecated and no longer served** by the API — confirmed against
+    https://docs.sarvam.ai on 2026-08-15. Do NOT use plain `sarvam-105b` in the loop.
+  - **TTS:** **Bulbul v3** (`bulbul:v3`), speaker `priya` by default (REST first;
+    WebSocket streaming — `wss://api.sarvam.ai/text-to-speech/ws` — for the polish pass).
+  - **Report LLM:** **`sarvam-105b`**, used ONCE for the end-of-session report (latency
     doesn't matter there; quality does).
 - **Env:** `SARVAM_API_KEY` in `backend/.env`. Never commit keys.
+- **Confirmed language codes:** `hi-IN`, `ta-IN`, `kn-IN` (also valid: `en-IN`, `bn-IN`,
+  `te-IN`, `ml-IN`, `mr-IN`, `gu-IN`, `pa-IN`, `or-IN`, `as-IN`, `ur-IN`, and more — see
+  `backend/sarvam.py`). Same codes work across STT `language_code` and TTS
+  `language_code`.
 
-> **Do not fabricate Sarvam request/response shapes.** Before writing `sarvam.py`, FETCH
-> the current docs at https://docs.sarvam.ai and use the exact endpoints, model strings,
-> params, and response fields from there. The Sarvam LLM is OpenAI-compatible; confirm the
-> base URL and model id in docs. If a call fails, re-read the docs before guessing.
+> **Do not fabricate Sarvam request/response shapes.** Exact signatures for STT, the
+> OpenAI-compatible chat completions endpoint, and Bulbul TTS (REST + WebSocket) are
+> implemented in `backend/sarvam.py` as of 2026-08-15, pulled directly from
+> https://docs.sarvam.ai. If a call fails or docs have since changed, re-fetch the docs
+> before guessing new field names.
 
 ---
 
@@ -271,3 +282,7 @@ virtual-lab/
 - Frontend never calls Sarvam directly — only the FastAPI backend. Keeps the key server-side.
 - CORS: allow the Vite dev origin on the FastAPI app.
 - Log every action to `event_log` as it happens.
+- **Scene assets: r3f primitives, not `.glb` models.** Beaker/funnel/burner/dish/table are
+  built from cylinders/boxes/cones in `ChemScene.jsx`. Locked 2026-08-15 to avoid burning
+  build time on asset hunting/licensing — a stylized primitive scene is sufficient for the
+  demo.

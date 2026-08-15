@@ -1,1 +1,46 @@
-{}
+{
+  "id": "chemistry_separation",
+  "subject": "Chemistry",
+  "title": "Separation of Substances",
+  "grade": 6,
+  "accent": "#2dd4bf",
+  "goal": "Separate a mixture of sand, salt and water using filtration and evaporation.",
+  "intro": "Namaste {student_name}! Let's separate a muddy mixture together.",
+  "steps": [
+    {
+      "id": "mix",
+      "instruction": "Add the sand and salt to the water and stir well.",
+      "action": "stir",
+      "state_change": { "mixture": "mixed" },
+      "concept": "Salt dissolves in water; sand does not — it stays as tiny bits."
+    },
+    {
+      "id": "filter",
+      "instruction": "Pour the mixture slowly through the filter paper.",
+      "action": "pour_filter",
+      "state_change": { "sand_separated": true },
+      "concept": "Filtration traps the insoluble sand and lets the salty water pass."
+    },
+    {
+      "id": "evaporate",
+      "instruction": "Heat the filtered water until it all boils away.",
+      "action": "heat",
+      "state_change": { "water_boiled": true, "salt_visible": true },
+      "concept": "Water evaporates and leaves the dissolved salt behind as crystals."
+    }
+  ],
+  "checkpoints": [
+    {
+      "after_step": "filter",
+      "question": "What stayed on the filter paper?",
+      "expected": "the sand",
+      "hint": "Think about what did not dissolve."
+    },
+    {
+      "after_step": "evaporate",
+      "question": "Where did the salt come from when the water disappeared?",
+      "expected": "it was dissolved in the water all along",
+      "hint": "The salt didn't leave — it was hiding in the water."
+    }
+  ]
+}
