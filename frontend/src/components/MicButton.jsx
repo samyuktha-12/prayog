@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { isVoiceSupported, startRecording, stopRecording } from '../lib/voice.js'
+import { isVoiceSupported, startRecording, stopRecording, unlockAudioPlayback } from '../lib/voice.js'
 
 // Press-to-talk, with client-side VAD as a second way to end the turn
 // (CLAUDE.md §8 item 4): releasing the button always works, but if the
@@ -33,6 +33,7 @@ export default function MicButton({ disabled, onRecorded, onError }) {
     if (disabled || recording) return
     finishedRef.current = false
     try {
+      await unlockAudioPlayback()
       await startRecording(finishRecording)
       activeRef.current = true
       setRecording(true)

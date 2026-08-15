@@ -13,6 +13,7 @@ let activeStream = null
 let audioContext = null
 let analyser = null
 let vadIntervalId = null
+let playbackContext = null
 
 const VAD_CHECK_MS = 100
 const VAD_SILENCE_THRESHOLD_DB = -45
@@ -25,6 +26,21 @@ export function isVoiceSupported() {
     !!navigator.mediaDevices?.getUserMedia &&
     typeof window.MediaRecorder !== 'undefined'
   )
+}
+
+// Browsers only permit sound after a direct user gesture. A Sarvam reply
+// arrives several seconds after the mic button is pressed, so unlock a Web
+// Audio context while that gesture is still active and reuse it for playback.
+export async function unlockAudioPlayback() {
+  const Ctx = window.AudioContext || window.webkitAudioContext
+  if (!Ctx) return
+  playbackContext ??= new Ctx()
+  if (playbackContext.state === 'suspended') await playbackContext.resume()
+  const silent = playbackContext.createBuffer(1, 1, playbackContext.sampleRate)
+  const source = playbackContext.createBufferSource()
+  source.buffer = silent
+  source.connect(playbackContext.destination)
+  source.start()
 }
 
 // onAutoStop is optional — called once if VAD detects the child has
@@ -135,15 +151,27 @@ export function blobToBase64(blob) {
 }
 
 export function playAudioFromBase64(base64, mimeType = 'audio/wav') {
-  return new Promise((resolve, reject) => {
-    try {
-      const audio = new Audio(`data:${mimeType};base64,${base64}`)
-      audio.onended = () => resolve()
-      audio.onerror = () => reject(new Error('Audio playback failed'))
-      audio.play().catch(reject)
-    } catch (e) {
-      reject(e)
-    }
+  return playWithWebAudio(base64).catch(() => new Promise((resolve, reject) => {
+    const audio = new Audio(`data:${mimeType};base64,${base64}`)
+    audio.onended = () => resolve()
+    audio.onerror = () => reject(new Error('Audio playback failed'))
+    audio.play().catch(reject)
+  }))
+}
+
+async function playWithWebAudio(base64) {
+  await unlockAudioPlayback()
+  if (!playbackContext) throw new Error('Web Audio is unavailable')
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  const buffer = await playbackContext.decodeAudioData(bytes.buffer)
+  await new Promise((resolve) => {
+    const source = playbackContext.createBufferSource()
+    source.buffer = buffer
+    source.connect(playbackContext.destination)
+    source.onended = resolve
+    source.start()
   })
 }
 

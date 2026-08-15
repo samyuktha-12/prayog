@@ -88,7 +88,7 @@ export default function Scene({ session, updateSession, navigate }) {
   // paths — same brain, per CLAUDE.md §4. Only the non-streaming voice path
   // passes reply_audio here; the streaming path already played its audio
   // chunk-by-chunk as it arrived, so it passes null.
-  function applyRespondResult({ transcript, reply_text, reply_audio }) {
+  function applyRespondResult({ transcript, reply_text, reply_audio, reply_audio_error }) {
     let newSceneState = sceneState
     const newHistoryEntries = [
       { role: 'child', text: transcript },
@@ -113,7 +113,11 @@ export default function Scene({ session, updateSession, navigate }) {
     })
 
     if (reply_audio) {
-      playAudioFromBase64(reply_audio).catch(() => {})
+      playAudioFromBase64(reply_audio).catch(() => {
+        setError('The reply arrived, but your browser blocked audio playback. Tap the microphone again and retry.')
+      })
+    } else if (reply_audio_error) {
+      setError(reply_audio_error)
     }
   }
 
@@ -131,7 +135,7 @@ export default function Scene({ session, updateSession, navigate }) {
         mode,
         session_context: sessionContext(),
       })
-      applyRespondResult({ transcript: trimmed, reply_text, reply_audio: null })
+    applyRespondResult({ transcript: trimmed, reply_text, reply_audio: null })
     } catch (e) {
       setError('Could not reach the lab. Check the backend and try again.')
     } finally {
@@ -170,7 +174,7 @@ export default function Scene({ session, updateSession, navigate }) {
   }
 
   async function handleVoiceSendNonStreaming(base64Audio) {
-    const { reply_text, reply_audio, transcript } = await respond({
+    const { reply_text, reply_audio, reply_audio_error, transcript } = await respond({
       session_id: session.session_id,
       input: base64Audio,
       input_type: 'audio',
@@ -178,7 +182,7 @@ export default function Scene({ session, updateSession, navigate }) {
       mode,
       session_context: sessionContext(),
     })
-    applyRespondResult({ transcript: transcript || '(voice message)', reply_text, reply_audio })
+    applyRespondResult({ transcript: transcript || '(voice message)', reply_text, reply_audio, reply_audio_error })
   }
 
   async function handleVoiceSend(blob) {

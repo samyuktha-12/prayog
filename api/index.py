@@ -300,14 +300,15 @@ class handler(BaseHTTPRequestHandler):
             reply = re.sub(r"\b(CORRECT|NEEDS_WORK)\b", "", sarvam_reply(messages), flags=re.I).strip()
             session["event_log"].append({"type": "guide_turn", "step_id": step_id, "transcript": transcript, "reply": reply})
             reply_audio = None
+            reply_audio_error = None
             if input_type == "audio":
                 try:
                     reply_audio = sarvam_speak(reply, session["language"])
-                except (HTTPError, URLError, ValueError, RuntimeError):
-                    # A spoken request still gets its transcript and written answer if
-                    # TTS has a temporary outage.
-                    reply_audio = None
-            self.send_json({"reply_text": reply, "reply_audio": reply_audio, "transcript": transcript if input_type == "audio" else None})
+                except (HTTPError, URLError, ValueError, RuntimeError) as error:
+                    # Preserve the text reply, but make a TTS outage visible instead
+                    # of silently looking like a browser playback problem.
+                    reply_audio_error = f"Text-to-speech failed: {error}"
+            self.send_json({"reply_text": reply, "reply_audio": reply_audio, "reply_audio_error": reply_audio_error, "transcript": transcript if input_type == "audio" else None})
             return
         if path == "/session/report":
             report = sarvam_reply([{"role": "user", "content": f"Write a 4-line English teacher report for this Grade-6 lab session: {json.dumps(session['event_log'])}"}], "sarvam-105b")
