@@ -38,6 +38,17 @@ export default function Scene({ session, updateSession, navigate }) {
     return [...session.history, ...entries].slice(-4)
   }
 
+  function sessionContext() {
+    return {
+      student_name: session.student_name,
+      language: session.language,
+      experiment_id: session.experiment_id,
+      scene_state: sceneState,
+      history: session.history,
+      event_log: session.event_log,
+    }
+  }
+
   // Fired by ChemScene once the child completes the current step's tap/drag
   // gesture (stir / pour_filter / heat) — the 3D stand-in for what was
   // previously a placeholder "I've done this" button.
@@ -118,6 +129,7 @@ export default function Scene({ session, updateSession, navigate }) {
         input_type: 'text',
         scene_state: sceneState,
         mode,
+        session_context: sessionContext(),
       })
       applyRespondResult({ transcript: trimmed, reply_text, reply_audio: null })
     } catch (e) {
@@ -164,6 +176,7 @@ export default function Scene({ session, updateSession, navigate }) {
       input_type: 'audio',
       scene_state: sceneState,
       mode,
+      session_context: sessionContext(),
     })
     applyRespondResult({ transcript: transcript || '(voice message)', reply_text, reply_audio })
   }
@@ -188,7 +201,8 @@ export default function Scene({ session, updateSession, navigate }) {
       }
     } catch (e) {
       console.warn('Voice turn failed, falling back to text:', e)
-      setError('Voice could not be processed. Allow microphone access and check that the Sarvam API key is set in Vercel.')
+      const detail = e instanceof Error ? e.message : 'Unknown voice-processing error'
+      setError(`Voice could not be processed: ${detail}`)
     } finally {
       setLoading(false)
     }

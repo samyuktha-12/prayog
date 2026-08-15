@@ -8,12 +8,23 @@ export default function Report({ session, resetSession }) {
 
   useEffect(() => {
     let cancelled = false
-    getReport({ session_id: session.session_id })
+    getReport({
+      session_id: session.session_id,
+      session_context: {
+        student_name: session.student_name,
+        language: session.language,
+        experiment_id: session.experiment_id,
+        scene_state: session.scene_state,
+        history: session.history,
+        event_log: session.event_log,
+      },
+    })
       .then(({ report_text }) => {
         if (!cancelled) setReport(report_text)
       })
-      .catch(() => {
-        if (!cancelled) setError('Could not load the report. Is the backend running?')
+      .catch((e) => {
+        const detail = e instanceof Error ? e.message : 'Unknown report error'
+        if (!cancelled) setError(`Could not load the report: ${detail}`)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)

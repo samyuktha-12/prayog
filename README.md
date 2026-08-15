@@ -10,6 +10,10 @@ This is a hackathon build: one experiment (Chemistry — Separation of Substance
 
 A real run, captured end to end — language + experiment pick, the 3D scene, a checkpoint answered correctly in Hindi by a live Sarvam call, and the resulting teacher report.
 
+<video src="docs/video/virtual-science-lab-demo.mov" controls preload="metadata" width="100%">
+  Your browser does not support the video tag. Download the <a href="docs/video/virtual-science-lab-demo.mov">demo recording</a> instead.
+</video>
+
 | | |
 |---|---|
 | ![Home — pick a language and an experiment](docs/screenshots/01-home.png) **Home** — pick a language and an experiment. | ![Setup — confirm the child's name and language](docs/screenshots/02-setup.png) **Setup** — confirm the child's name; this greeting gets injected into the guide's first line. |

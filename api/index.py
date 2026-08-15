@@ -78,6 +78,37 @@ def load_experiment(experiment_id: str) -> dict:
     return experiment
 
 
+def get_or_restore_session(body: dict) -> dict:
+    """Restore a demo session when Vercel schedules a request elsewhere.
+
+    The local FastAPI build intentionally uses in-memory state. A serverless
+    deployment has no instance affinity, so the browser also sends a tiny
+    non-sensitive session snapshot with each turn/report request. This keeps
+    the hackathon demo reliable without adding a database.
+    """
+    session_id = body.get("session_id")
+    session = SESSIONS.get(session_id)
+    if session:
+        return session
+
+    snapshot = body.get("session_context")
+    if not session_id or not isinstance(snapshot, dict):
+        raise KeyError("Session expired")
+    experiment_id = snapshot.get("experiment_id")
+    if experiment_id not in EXPERIMENTS:
+        raise KeyError("Unknown experiment")
+    session = {
+        "student_name": snapshot.get("student_name", "Aarav"),
+        "language": snapshot.get("language", "hi-IN"),
+        "experiment_id": experiment_id,
+        "scene_state": snapshot.get("scene_state", {}),
+        "history": snapshot.get("history", [])[-4:],
+        "event_log": snapshot.get("event_log", []),
+    }
+    SESSIONS[session_id] = session
+    return session
+
+
 def sarvam_reply(messages: list[dict], model: str = "sarvam-105b-conversations") -> str:
     key = os.getenv("SARVAM_API_KEY")
     if not key:
@@ -240,8 +271,9 @@ class handler(BaseHTTPRequestHandler):
             except (KeyError, IndexError):
                 self.send_json({"detail": "Invalid session request"}, 400)
             return
-        session = SESSIONS.get(body.get("session_id"))
-        if not session:
+        try:
+            session = get_or_restore_session(body)
+        except KeyError:
             self.send_json({"detail": "Session expired. Start the experiment again."}, 404)
             return
         if path == "/session/action":
