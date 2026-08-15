@@ -1,12 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "base64 -d source.tgz.b64 | tar -xz && npm --prefix frontend ci",
+  "installCommand": "npm --prefix frontend ci",
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "includeFiles": "backend/**"
+      "includeFiles": "frontend/dist/**"
     }
   },
   "rewrites": [
@@ -14,7 +14,6 @@
     { "source": "/warmup", "destination": "/api/index.py/warmup" },
     { "source": "/experiments/:path*", "destination": "/api/index.py/experiments/:path*" },
     { "source": "/session/:path*", "destination": "/api/index.py/session/:path*" },
-    { "source": "/respond", "destination": "/api/index.py/respond" },
-    { "source": "/respond/stream", "destination": "/api/index.py/respond/stream" }
+    { "source": "/respond", "destination": "/api/index.py/respond" }
   ]
 }
